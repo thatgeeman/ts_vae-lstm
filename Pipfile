@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+numpy = "*"
+pandas = "*"
+nbdev = "*"
+fastcore = "*"
+kaggle = ">=1.5"
+matplotlib = "*"
+seaborn = "*"
+torch = "*"
+scipy = "*"
+
+[dev-packages]
+ipykernel = "*"
+ts-vae-lstm = {editable = true, path = "."}
+
+[requires]
+python_version = "3.9"

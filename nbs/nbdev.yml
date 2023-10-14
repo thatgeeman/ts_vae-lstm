@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "ts_vae_lstm"
+  site-url: "https://thatgeeman.github.io/ts_vae_lstm"
+  description: ""
+  repo-branch: main
+  repo-url: "https://github.com/thatgeeman/ts_vae_lstm"
