@@ -1,18 +1,10 @@
 NAB Data Corpus
 ---
 
-Data are ordered, timestamped, single-valued metrics. All data files contain anomalies, unless otherwise noted.
+Dataset from: https://github.com/lin-shuyu/VAE-LSTM-for-anomaly-detection/tree/master/datasets/NAB-known-anomaly
 
 
-### Real data
-- realAWSCloudwatch/
-
-	AWS server metrics as collected by the AmazonCloudwatch service. Example metrics include CPU Utilization, Network Bytes In, and Disk Read Bytes.
-
-- realAdExchange/
-	
-	Online advertisement clicking rates, where the metrics are cost-per-click (CPC) and cost per thousand impressions (CPM). One of the files is normal, without anomalies.
-	
+### Real data 
 - realKnownCause/
 
 	This is data for which we know the anomaly causes; no hand labeling.
@@ -37,37 +29,3 @@ Data are ordered, timestamped, single-valued metrics. All data files contain ano
 	storm. The raw data is from the [NYC Taxi and Limousine Commission](http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml).
 	The data file included here consists of aggregating the total number of
 	taxi passengers into 30 minute buckets.
-	- rogue_agent_key_hold.csv: Timing the key holds for several users of a
-	computer, where the anomalies represent a change in the user.
-	- rogue_agent_key_updown.csv: Timing the key strokes for several users of a
-	computer, where the anomalies represent a change in the user.
-
-- realRogueAgent/
-
-	This data represents computer usage patterns for different users, where an
-	anomaly may occur with a rogue user of the computer.
-
-- realTraffic/
-
-	Real time traffic data from the Twin Cities Metro area in Minnesota, collected
-	by the
-	[Minnesota Department of Transportation](http://www.dot.state.mn.us/tmc/trafficinfo/developers.html).
-	Included metrics include occupancy, speed, and travel time from specific
-	sensors.
-
-- realTweets/
-
-	A collection of Twitter mentions of large publicly-traded companies
-	such as Google and IBM. The metric value represents the number of mentions
-	for a given ticker symbol every 5 minutes.
-
-
-### Artificial data
-
-- artificialNoAnomaly/
-
-	Artifically-generated data without any anomalies.
-
-- artificialWithAnomaly/
-
-	Artifically-generated data with varying types of anomalies.

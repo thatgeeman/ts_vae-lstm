@@ -11,8 +11,9 @@ fastcore = "*"
 kaggle = ">=1.5"
 matplotlib = "*"
 seaborn = "*"
-torch = "*"
+torch = "==2.0"
 scipy = "*"
+scikit-learn = "*"
 
 [dev-packages]
 ipykernel = "*"
