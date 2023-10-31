@@ -1,6 +1,7 @@
 _docs/
 _proc/
 data/
+*/*.pth
 
 *.bak
 .gitattributes
