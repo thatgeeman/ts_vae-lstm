@@ -6,7 +6,6 @@ __all__ = ['get_window']
 # %% ../nbs/10_concepts.ipynb 2
 import numpy as np
 
-
 # %% ../nbs/10_concepts.ipynb 8
 def get_window(x, window_size=10, end_step=100, indices=None, return_indices=True):
     """
@@ -19,7 +18,5 @@ def get_window(x, window_size=10, end_step=100, indices=None, return_indices=Tru
     if return_indices:
         return indices[start_step:end_step]
     else:
-        return x[
-            indices[start_step:end_step], :
-        ]  # x of shape (num_features, feature_len)
-
+        return x[indices[start_step:end_step], :]
+    # x of shape (num_features, feature_len)
