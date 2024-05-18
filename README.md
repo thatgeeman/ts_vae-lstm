@@ -9,7 +9,16 @@ documentation.
 ## Install
 
 ``` sh
+
 pip install ts_vae_lstm
+```
+
+## CUDA
+
+Download the driver and cuda version compiled for the driver.
+```bash
+sudo mhwd -i pci video-nvidia-470xx
+sudo pacman -U https://archive.archlinux.org/packages/c/cuda/cuda-11.4.2-1-x86_64.pkg.tar.zst
 ```
 
 ## How to use

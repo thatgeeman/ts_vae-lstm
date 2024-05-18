@@ -22,12 +22,14 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import roc_auc_score, accuracy_score
 
-
 # %% ../nbs/03_ad_complete.ipynb 5
 from .vae import VAE, Encoder, Decoder, StochasticSampler
 from fastcore.xtras import noop
 
-
-# %% ../nbs/03_ad_complete.ipynb 10
-df = pd.DataFrame(data["test"], index=data["t_test"], columns=["value"])
+# %% ../nbs/03_ad_complete.ipynb 14
+df = pd.DataFrame(
+    data_test_norm,  # data["test"],  # - data["train_m"]) / data["train_std"],
+    index=data["t_test"],
+    columns=["value"],
+)
 df.head(2)

@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "downloadpytorch"
+
 [packages]
 numpy = "*"
 pandas = "*"
@@ -11,9 +16,9 @@ fastcore = "*"
 kaggle = ">=1.5"
 matplotlib = "*"
 seaborn = "*"
-torch = "==2.0"
 scipy = "*"
 scikit-learn = "*"
+torch = "==2.0.0"
 
 [dev-packages]
 ipykernel = "*"

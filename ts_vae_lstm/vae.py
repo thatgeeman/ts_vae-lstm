@@ -4,7 +4,7 @@
 __all__ = ['num_workers', 'data', 'df', 'p', 'end_steps', 'data_windowed', 'split_ratio', 'val_data_idxs', 'trn_data_idxs',
            'val_data', 'trn_data', 'n_features', 'means', 'stds', 'slice_from', 'dset_trn', 'dset_val', 'batch_size',
            'dl_trn', 'dl_val', 'device', 'TSDataset', 'Encoder', 'StochasticSampler', 'Decoder', 'VAE',
-           'calculate_smape', 'loss_func', 'get_similarity', 'validate_epoch']
+           'evaluate_reconstruction', 'validate_epoch']
 
 # %% ../nbs/01_vae.ipynb 3
 import pandas as pd
@@ -17,22 +17,18 @@ from scipy import signal
 import os
 import math
 
-
 # %% ../nbs/01_vae.ipynb 4
 num_workers = os.cpu_count()
 num_workers
-
 
 # %% ../nbs/01_vae.ipynb 6
 data = np.load("../sample_data/nyc_taxi.npz")
 for k in data.keys():
     print(k)
 
-
 # %% ../nbs/01_vae.ipynb 14
 df = pd.DataFrame(data["training"], index=data["t_train"], columns=["value"])
 df.head(2)
-
 
 # %% ../nbs/01_vae.ipynb 19
 p = 48  # past sequences at time t. 48 steps = a day
@@ -136,7 +132,7 @@ dl_val = DataLoader(
     num_workers=num_workers,
 )
 
-# %% ../nbs/01_vae.ipynb 43
+# %% ../nbs/01_vae.ipynb 44
 # encoder
 # l_win to 24, the model would consider each 24-hour period as one sequence.
 # pad: if your array is [1, 2, 3] and you symmetrically pad it with 1 unit, the result would be [2, 1, 2, 3, 2].
@@ -153,7 +149,7 @@ class Encoder(nn.Module):
         self,
         latent_dim=20,
         num_hidden_units=512,
-        kernel_size=(3, 1),
+        kernel_size=(5, 1),
         stride=(2, 1),
         act=F.mish,
     ):
@@ -161,40 +157,28 @@ class Encoder(nn.Module):
         self.flatten = nn.Flatten()
         self.conv1 = nn.Conv2d(
             in_channels=1,
-            out_channels=num_hidden_units // 16,
+            out_channels=num_hidden_units // 8,
             kernel_size=kernel_size,
             stride=stride,
         )
         self.conv2 = nn.Conv2d(
-            in_channels=num_hidden_units // 16,
-            out_channels=num_hidden_units,
-            kernel_size=kernel_size,
-            stride=stride,
-        )
-        """self.conv3 = nn.Conv2d(
             in_channels=num_hidden_units // 8,
-            out_channels=num_hidden_units // 4,
+            out_channels=num_hidden_units,
             kernel_size=kernel_size,
             stride=stride,
         )
-        self.conv4 = nn.Conv2d(
-            in_channels=num_hidden_units // 4,
-            out_channels=num_hidden_units,
-            kernel_size=(4, 1),
-            stride=stride,
-        )"""
+        self.bn1 = nn.BatchNorm2d(num_hidden_units // 8)
+        self.bn2 = nn.BatchNorm2d(num_hidden_units)
+
         self.linear = nn.LazyLinear(
-            # in_features=num_hidden_units,
             out_features=num_hidden_units,
             bias=False,
         )
         self.linear_mean = nn.LazyLinear(
-            # in_features=num_hidden_units,
             out_features=latent_dim,
             bias=False,
         )
         self.linear_var = nn.LazyLinear(
-            # in_features=num_hidden_units,
             out_features=latent_dim,
             bias=False,
         )
@@ -203,10 +187,8 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = x.unsqueeze(1)  # 100, 1, 48, 1
-        x = self.act(self.conv1(x))  # 100, 32, 23, 1
-        x = self.act(self.conv2(x))  # 100, 64, 11, 1
-        # x = self.act(self.conv3(x))  # 100, 128, 5, 1
-        # x = self.act(self.conv4(x))  # 100, 512, 1, 1
+        x = self.act(self.bn1(self.conv1(x)))  # 100, 32, 23, 1
+        x = self.act(self.bn2(self.conv2(x)))  # 100, 64, 11, 1
         x = self.flatten(x)  # 100, 512
         x = self.act(self.linear(x))  # 100, 512
         z_mean = self.linear_mean(x)
@@ -215,17 +197,14 @@ class Encoder(nn.Module):
 
     def init_weights(self):
         for m in self.modules():
-            """
-            if isinstance(m, nn.LazyLinear):
-                torch.nn.init.xavier_normal_(m.weight)
-                m.bias.data.fill_(0)
-            """
             if isinstance(m, nn.Conv2d):
                 torch.nn.init.xavier_normal_(m.weight)
                 m.bias.data.fill_(0)
 
-# %% ../nbs/01_vae.ipynb 47
+# %% ../nbs/01_vae.ipynb 48
 class StochasticSampler(nn.Module):
+    """We basically want to parametrize the sampling from the latent space"""
+
     def __init__(self, deterministic=False):
         super().__init__()
         self.sampler = torch.distributions.Normal(loc=0, scale=1)
@@ -236,6 +215,7 @@ class StochasticSampler(nn.Module):
         # z_mean and z_log_var are mean and log-var estimates of the latent space
         # under the assumption that the latent space is a gaussian normal
         device = z_mean.device
+        # Scales and shifts the sampled values using the reparameterization trick
         eps = self.sampler.sample(z_mean.shape).squeeze().to(device)
         # print(eps.shape, z_log_var.shape, z_mean.shape)
         return (
@@ -244,7 +224,7 @@ class StochasticSampler(nn.Module):
             else (z_mean + torch.exp(0.5 * z_log_var) * eps)
         )
 
-# %% ../nbs/01_vae.ipynb 52
+# %% ../nbs/01_vae.ipynb 54
 # l_win to 24, the model would consider each 24-hour period as one sequence.
 # pad: if your array is [1, 2, 3] and you symmetrically pad it with 1 unit, the result would be [2, 1, 2, 3, 2].
 # xavier_initializer()
@@ -276,8 +256,8 @@ class Decoder(nn.Module):
         output_shape,
         latent_dim=20,
         num_hidden_units=512,
-        kernel_size=(3, 1),
-        stride=1,
+        kernel_size=(5, 1),
+        stride=2,
         act=F.mish,
     ):
         super().__init__()
@@ -287,19 +267,22 @@ class Decoder(nn.Module):
         )
         self.dconv1 = nn.ConvTranspose2d(
             in_channels=num_hidden_units,
-            out_channels=num_hidden_units // 4,
-            kernel_size=(4, 1),
+            out_channels=num_hidden_units,
+            kernel_size=kernel_size,
             stride=stride,
         )
         self.dconv2 = nn.ConvTranspose2d(
-            in_channels=num_hidden_units // 4,
+            in_channels=num_hidden_units,
             out_channels=num_hidden_units // 8,
             kernel_size=kernel_size,
             stride=stride,
         )
+
+        self.bn1 = nn.BatchNorm2d(num_hidden_units)
+        self.bn2 = nn.BatchNorm2d(num_hidden_units // 8)
+
         self.flatten = nn.Flatten()
         self.linear_out = nn.LazyLinear(
-            # in_features=96,
             out_features=math.prod(output_shape),
             bias=False,
         )
@@ -311,10 +294,11 @@ class Decoder(nn.Module):
     def forward(self, x):
         x = self.linear(x)
         x = x[:, :, None, None]
-        x = self.act(self.dconv1(x))
-        x = self.act(self.dconv2(x))
+        x = self.act(self.bn1(self.dconv1(x)))
+        x = self.act(self.bn2(self.dconv2(x)))
         x = self.flatten(x)
-        x = self.act(self.linear_out(x))
+        # no act for last layer
+        x = self.linear_out(x)
         return self.reshape_to_output(x)
 
     def reshape_to_output(self, x):
@@ -323,19 +307,14 @@ class Decoder(nn.Module):
 
     def init_weights(self):
         for m in self.modules():
-            """
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_normal_(m.weight)
-                # m.bias.data.fill_(0)
-            """
             if isinstance(m, nn.Conv2d):
                 torch.nn.init.xavier_normal_(m.weight)
                 m.bias.data.fill_(0)
 
-# %% ../nbs/01_vae.ipynb 55
+# %% ../nbs/01_vae.ipynb 57
 from torch.distributions import kl_divergence
 
-# %% ../nbs/01_vae.ipynb 56
+# %% ../nbs/01_vae.ipynb 59
 class VAE(nn.Module):
     def __init__(
         self, input_shape, latent_dim=20, act=F.leaky_relu, deterministic=False
@@ -347,49 +326,64 @@ class VAE(nn.Module):
         self.act = act
 
     def forward(self, x):
+        # x shape: [batch_size, sequence_length, num_features]
         z_mean, z_log_var = self.encoder(x)
         z = self.latent_sampler(z_mean, z_log_var)
-        out = self.decoder(z)
+        reconstructed_x = self.decoder(z)
         # loss to enforce all possible values are sampled from latent space
         # should be of the size of the batch
-        loss_kl = -0.5 * torch.sum(
-            1 + z_log_var - z_mean.pow(2) - z_log_var.exp(), dim=-1
-        )
-        return out, loss_kl
 
-# %% ../nbs/01_vae.ipynb 59
-def calculate_smape(predicted, actual):
-    with torch.no_grad():
-        absolute_percentage_errors = (
-            torch.abs(predicted - actual) / (torch.abs(predicted) + torch.abs(actual))
-        ) * 100
-        return absolute_percentage_errors.mean()
+        # Reconstruction Loss (Mean Squared Error)
+        reconstruction_loss = F.mse_loss(reconstructed_x, x, reduction="mean")
+        loss_kl = -0.5 * torch.mean(1 + z_log_var - z_mean.pow(2) - z_log_var.exp())
+        # / x.size(1)
+        # average the KL divergence across the batch dimension
+        # In the VAE-LSTM paper, they mention normalizing the KL divergence term by the number of features in the input.
+        vae_loss = reconstruction_loss + loss_kl
+        return reconstructed_x, vae_loss
 
-# %% ../nbs/01_vae.ipynb 60
-def loss_func(inputs, targets, loss_kl):
-    # targets = torch.where(targets >= 0, 1., 0.)
-    # loss_kl = loss_kl.unsqueeze(-1)  # add loss_kl per time step.
-    loss_reconstruct_numerical = F.huber_loss(
-        inputs,
-        targets,
-        delta=3,
-        reduction="none",
-    ).sum((1, 2))
-    return (loss_reconstruct_numerical + loss_kl).sum()
+# %% ../nbs/01_vae.ipynb 64
+@torch.no_grad()
+def evaluate_reconstruction(original_signal, reconstructed_signal):
+    """
+    Evaluates the quality of the reconstructed signal compared to the original signal.
 
-# %% ../nbs/01_vae.ipynb 63
-def get_similarity(inputs, targets):
-    func = F.mse_loss
-    with torch.no_grad():
-        loss_num = func(inputs.flatten(), targets.flatten())
-        return loss_num
+    Args:
+        original_signal (torch.Tensor): Original time series signal.
+        reconstructed_signal (torch.Tensor): Reconstructed signal from the VAE.
 
-# %% ../nbs/01_vae.ipynb 67
+    Returns:
+        dict: Dictionary containing the evaluation metrics:
+            - mse: Mean Squared Error
+            - mae: Mean Absolute Error
+            - dtw: Dynamic Time Warping distance
+    """
+
+    # Ensure tensors are on the CPU and numpy arrays
+    original_signal = original_signal.cpu().numpy()
+    reconstructed_signal = reconstructed_signal.cpu().numpy()
+
+    # Mean Squared Error
+    mse = nn.MSELoss()(
+        torch.from_numpy(original_signal), torch.from_numpy(reconstructed_signal)
+    ).item()
+
+    # Mean Absolute Error
+    mae = nn.L1Loss()(
+        torch.from_numpy(original_signal), torch.from_numpy(reconstructed_signal)
+    ).item()
+
+    return {
+        "mse": mse,
+        "mae": mae,
+    }
+
+# %% ../nbs/01_vae.ipynb 66
 device = "cuda" if torch.cuda.is_available() else "cpu"
 device
 
-# %% ../nbs/01_vae.ipynb 68
-def validate_epoch(dls, criterion, scorer):
+# %% ../nbs/01_vae.ipynb 67
+def validate_epoch(dls, scorer):
     """For the full dataloader, calculate the running loss and score"""
     model.eval()
     running_loss = 0.0
@@ -400,16 +394,13 @@ def validate_epoch(dls, criterion, scorer):
             xs = xs.to(device)
 
             # Forward pass
-            xs_gen, loss_kl = model(xs)
-
-            loss = criterion(xs_gen, targets=xs, loss_kl=loss_kl)
-            # print(loss - loss_kl, loss_kl)
+            xs_gen, loss = model(xs)
             # calc score
-            score = scorer(xs_gen, xs)
+            score = scorer(xs, xs_gen)["mse"]
 
             running_loss += loss.item()
-            running_score += score.item()
+            running_score += score
     return running_loss / len(dls), running_score / len(dls)
 
-# %% ../nbs/01_vae.ipynb 69
+# %% ../nbs/01_vae.ipynb 68
 from fastcore.xtras import partial
