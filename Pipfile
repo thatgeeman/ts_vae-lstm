@@ -19,6 +19,7 @@ seaborn = "*"
 scipy = "*"
 scikit-learn = "*"
 torch = "==2.0.0"
+python-dotenv = "*"
 
 [dev-packages]
 ipykernel = "*"

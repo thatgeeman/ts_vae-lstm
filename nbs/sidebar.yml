@@ -1,0 +1,8 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 01_vae.ipynb
+      - 02_lstm.ipynb
+      - 03_ad_complete.ipynb
+      - 10_concepts.ipynb
