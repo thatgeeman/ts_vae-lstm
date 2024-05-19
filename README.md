@@ -36,7 +36,7 @@ beyond a threshold (L2 norm) is considered an anomaly.
 In the figure, red dashed lines are the true labels in the hidden set.
 Pink window is the region where anomaly was predicted.
 
-![sample_data/image.png](index_files/figure-commonmark/cell-5-1-image.png)
+![sample_data/image.png](sample_data/result.png)
 
 ## Misc
 
