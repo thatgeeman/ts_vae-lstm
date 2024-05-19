@@ -1,4 +1,5 @@
 _docs/
+index_files/
 _proc/
 data/
 */*.pth
