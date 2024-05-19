@@ -33,17 +33,17 @@ data = np.load(f"{BASEDIR}/sample_data/nyc_taxi.npz")
 for k in data.keys():
     print(k)
 
-# %% ../nbs/01_vae.ipynb 15
+# %% ../nbs/01_vae.ipynb 17
 df = pd.DataFrame(data["training"], index=data["t_train"], columns=["value"])
 df.head(2)
 
-# %% ../nbs/01_vae.ipynb 20
+# %% ../nbs/01_vae.ipynb 22
 p = 48  # past sequences at time t. 48 steps = a day
 end_steps = [es for es in range(p, len(df), 1)]
 # step is one since we want overlapping windows for VAE training
 len(end_steps), end_steps[:3], end_steps[-3:]
 
-# %% ../nbs/01_vae.ipynb 21
+# %% ../nbs/01_vae.ipynb 23
 data_windowed = [
     {
         "subset": get_window(
@@ -59,7 +59,7 @@ data_windowed = [
     for t in end_steps
 ]
 
-# %% ../nbs/01_vae.ipynb 24
+# %% ../nbs/01_vae.ipynb 26
 split_ratio = 0.2
 val_data_idxs = np.random.choice(
     range(len(data_windowed)), size=int(split_ratio * len(data_windowed)), replace=False
@@ -67,38 +67,36 @@ val_data_idxs = np.random.choice(
 trn_data_idxs = [idx for idx in range(len(data_windowed)) if idx not in val_data_idxs]
 len(val_data_idxs), len(trn_data_idxs)
 
-# %% ../nbs/01_vae.ipynb 25
+# %% ../nbs/01_vae.ipynb 27
 from torch import nn
 import torch.nn.functional as F
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import roc_auc_score, accuracy_score
 
-# %% ../nbs/01_vae.ipynb 26
+# %% ../nbs/01_vae.ipynb 28
 val_data = [data_windowed[idx] for idx in val_data_idxs]
 trn_data = [data_windowed[idx] for idx in trn_data_idxs]
 
-# %% ../nbs/01_vae.ipynb 29
+# %% ../nbs/01_vae.ipynb 31
 n_features = trn_data[0]["subset"].shape[1]  # - 1
 n_features
 
-# %% ../nbs/01_vae.ipynb 31
+# %% ../nbs/01_vae.ipynb 33
 means = np.zeros((len(trn_data), n_features))  # ((len(trn_data), 4))
 stds = np.zeros((len(trn_data), n_features))  # ((len(trn_data), 4))
 slice_from = n_features - 1
-"""
 for i, _trn_data in enumerate(trn_data):
     means[i] = (np.mean(_trn_data["subset"][:, slice_from:], axis=0)).astype(np.float32)
     stds[i] = (np.var(_trn_data["subset"][:, slice_from:], axis=0) ** 0.5).astype(
         np.float32
     )
-"""
 means = means.mean(0)
 stds = stds.mean(0)
 
 means, stds
 
-# %% ../nbs/01_vae.ipynb 34
+# %% ../nbs/01_vae.ipynb 36
 class TSDataset(Dataset):
     def __init__(self, data, mean, std):
         self.data = data
@@ -115,15 +113,15 @@ class TSDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-# %% ../nbs/01_vae.ipynb 35
+# %% ../nbs/01_vae.ipynb 37
 dset_trn = TSDataset(trn_data, mean=means, std=stds)
 dset_val = TSDataset(val_data, mean=means, std=stds)
 # use same stats from training data
 
-# %% ../nbs/01_vae.ipynb 38
+# %% ../nbs/01_vae.ipynb 40
 batch_size = 8
 
-# %% ../nbs/01_vae.ipynb 39
+# %% ../nbs/01_vae.ipynb 41
 dl_trn = DataLoader(
     dataset=dset_trn,
     batch_size=batch_size,
@@ -139,7 +137,7 @@ dl_val = DataLoader(
     num_workers=num_workers,
 )
 
-# %% ../nbs/01_vae.ipynb 45
+# %% ../nbs/01_vae.ipynb 47
 # encoder
 # l_win to 24, the model would consider each 24-hour period as one sequence.
 # pad: if your array is [1, 2, 3] and you symmetrically pad it with 1 unit, the result would be [2, 1, 2, 3, 2].
@@ -208,7 +206,7 @@ class Encoder(nn.Module):
                 torch.nn.init.xavier_normal_(m.weight)
                 m.bias.data.fill_(0)
 
-# %% ../nbs/01_vae.ipynb 49
+# %% ../nbs/01_vae.ipynb 51
 class StochasticSampler(nn.Module):
     """We basically want to parametrize the sampling from the latent space"""
 
@@ -231,7 +229,7 @@ class StochasticSampler(nn.Module):
             else (z_mean + torch.exp(0.5 * z_log_var) * eps)
         )
 
-# %% ../nbs/01_vae.ipynb 55
+# %% ../nbs/01_vae.ipynb 57
 # l_win to 24, the model would consider each 24-hour period as one sequence.
 # pad: if your array is [1, 2, 3] and you symmetrically pad it with 1 unit, the result would be [2, 1, 2, 3, 2].
 # xavier_initializer()
@@ -318,7 +316,7 @@ class Decoder(nn.Module):
                 torch.nn.init.xavier_normal_(m.weight)
                 m.bias.data.fill_(0)
 
-# %% ../nbs/01_vae.ipynb 59
+# %% ../nbs/01_vae.ipynb 61
 class VAE(nn.Module):
     def __init__(
         self, input_shape, latent_dim=20, act=F.leaky_relu, deterministic=False
@@ -346,7 +344,7 @@ class VAE(nn.Module):
         vae_loss = reconstruction_loss + loss_kl
         return reconstructed_x, vae_loss
 
-# %% ../nbs/01_vae.ipynb 64
+# %% ../nbs/01_vae.ipynb 66
 @torch.no_grad()
 def evaluate_reconstruction(original_signal, reconstructed_signal):
     """
@@ -382,11 +380,11 @@ def evaluate_reconstruction(original_signal, reconstructed_signal):
         "mae": mae,
     }
 
-# %% ../nbs/01_vae.ipynb 66
+# %% ../nbs/01_vae.ipynb 68
 device = "cuda" if torch.cuda.is_available() else "cpu"
 device
 
-# %% ../nbs/01_vae.ipynb 67
+# %% ../nbs/01_vae.ipynb 69
 def validate_epoch(dls, scorer):
     """For the full dataloader, calculate the running loss and score"""
     model.eval()
@@ -406,5 +404,5 @@ def validate_epoch(dls, scorer):
             running_score += score
     return running_loss / len(dls), running_score / len(dls)
 
-# %% ../nbs/01_vae.ipynb 68
+# %% ../nbs/01_vae.ipynb 70
 from fastcore.xtras import partial
