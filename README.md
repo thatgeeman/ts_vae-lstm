@@ -9,6 +9,10 @@ This is a work in progress.
 #### TODO
 
 - [ ] Separate training from notebooks
+- [ ] Fix github-actions
+  - [ ] Page deployment
+  - [ ] CI tests
+  - [x] precommit
 - [x] Build complete AD pipeline
 - [ ] include fine-grained threshold for within window detection.
 - [x] use a squared term if the absolute element-wise error falls below
@@ -36,7 +40,7 @@ beyond a threshold (L2 norm) is considered an anomaly.
 In the figure, red dashed lines are the true labels in the hidden set.
 Pink window is the region where anomaly was predicted.
 
-![sample_data/image.png](sample_data/result.png)
+![sample_data/image.png](index_files/figure-commonmark/cell-5-1-image.png)
 
 ## Misc
 
