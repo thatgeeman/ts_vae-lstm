@@ -56,46 +56,54 @@ def reconstruct_ts(emb, vae_model):
 # %% ../nbs/03_ad_complete.ipynb 25
 @torch.no_grad()
 def AD(
-    past_window,
+    x,
+    y,
     vae_model,
     lstm_model,
     window_size=48,
-    threshold=0.8,
+    # threshold=0.8,
+    quantile_thresh=0.99,
     latent_dim=24,
     reconstruct_with_true=False,
     stats={"lstm": (0, 1), "vae": (0, 1)},
     normalize=True,
-    steps=None,
+    sampler_repeat=200,
     # device="cpu",
 ):
-    steps = np.asanyarray(steps)
+    x = np.asanyarray(x)
+    ad_granular = []
     if normalize:
-        past_window = (past_window - stats["vae"][0]) / stats["vae"][1]
-    remainder = len(past_window) % window_size
+        y = (y - stats["vae"][0]) / stats["vae"][1]
+    remainder = len(y) % window_size
     if remainder > 0:
         print(
             f"past window not a multiple of window_size! Adjusting for {remainder} extra points."
         )
-        past_window = past_window[remainder:]
-        steps = steps[remainder:]
+        y = y[remainder:]
+        x = x[remainder:]
     # start
-    n_windows = int(len(past_window) / window_size)
+    n_windows = int(len(y) / window_size)
     print(f"Number of windows from time series: {n_windows}")
     ad_score = np.zeros(n_windows)
     ad_status = np.zeros((n_windows, window_size))
     ad_window_loc = np.zeros((n_windows, window_size))
+    # threshold_t = threshold / window_size  # threshold for each time step in the window
     # window = torch.as_tensor(window).to(device=device).unsqueeze(0)
     # print(window.shape)
     emb = get_embeddings(
-        past_window, n_windows=n_windows, vae_model=vae_model, latent_dim=latent_dim
+        y,
+        n_windows=n_windows,
+        vae_model=vae_model,
+        latent_dim=latent_dim,
+        sampler_repeat=sampler_repeat,
     )  # encode 48 steps to 24 embeddings
     n_features = emb.size(-1)
     emb = emb.reshape(1, n_windows, latent_dim, n_features)
     # standardize with training stats
     # print(emb.shape)
     ts = np.zeros((n_windows, window_size))
-    past_window = past_window.reshape(ts.shape)
-    steps = steps.reshape(ts.shape)
+    y = y.reshape(ts.shape)
+    x = x.reshape(ts.shape)
     for widx in range(n_windows):
         emb_idx = emb[:, widx, :, :]
         if normalize:
@@ -119,19 +127,40 @@ def AD(
         ts_widx = ts_widx.squeeze().detach().numpy()
         ts[widx, :] = ts_widx
         # calculate for this window the anomaly score
-        ad_score[widx] = np.linalg.norm(past_window[widx] - ts_widx, 2)
-        ad_status[widx, :] = ad_score[widx] > threshold  # global label for all items
-        ad_window_loc[widx, :] = steps[widx, :]
+        ad_score[widx] = np.linalg.norm(y[widx] - ts_widx, 2)
+        # ad_status[widx, :] = ad_score[widx] > threshold  # global label for all items
+        ad_window_loc[widx, :] = x[widx, :]
 
     if normalize:
         ts = ts * stats["vae"][1] + stats["vae"][0]
-        past_window = past_window * stats["vae"][1] + stats["vae"][0]
+        y = y * stats["vae"][1] + stats["vae"][0]
+    # global label for whole window
+    threshold = np.quantile(ad_score, q=quantile_thresh)
+    print(f"global thresh from Q{quantile_thresh}: {threshold}")
+    ad_status = np.repeat(ad_score > threshold, repeats=window_size).reshape(
+        n_windows, window_size
+    )
+    # within the detected windows, look for fine grained points of anomaly
+    for widx in range(n_windows):
+        if ad_score[widx] > threshold:
+            _diff = np.mean(
+                (y[widx].reshape(-1, 1) - ts_widx.reshape(-1, 1)) ** 2,
+                axis=-1,
+            )
+            threshold_t = np.quantile(_diff, q=quantile_thresh)
+            # if the absolute difference is greater than a certain quantile, mark anomaly
+            anomaly_markers = 1 * (_diff > threshold_t)
+            # only pick the first time when anomaly was spotted
+            nzidx = np.nonzero(anomaly_markers)[0][0]
+            ad_granular.append(x[widx, nzidx])
 
+    print(f"count anomalies (grainular): {len(ad_granular)}")
     return {
         "reconstructed": ts,
-        "actual": past_window,
+        "actual": y,
         "score": ad_score,
         "status": ad_status,
-        "steps": steps,
+        "status_granular": ad_granular,
+        "steps": x,
         "threshold": threshold,
     }
