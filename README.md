@@ -46,7 +46,7 @@ labels in the unseen set. Green window is the region where anomaly was
 predicted. Green line is the first time anomaly was flagged in the
 window.
 
-![](../sample_data/result_granular.png)
+![sample_data/result_granular.png](sample_data/result_granular.png)
 
 ## Misc
 
