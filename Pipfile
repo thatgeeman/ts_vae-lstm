@@ -21,6 +21,7 @@ scikit-learn = "*"
 torch = "==2.0.0"
 python-dotenv = "*"
 pre-commit = "*"
+hydra-core = "*"
 
 [dev-packages]
 ipykernel = "*"

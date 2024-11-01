@@ -1,0 +1,7 @@
+defaults:
+  - _self_
+  - dataset: nyc_taxi
+
+base_dir: ..
+model_dir: ${base_dir}/models
+num_workers: 4

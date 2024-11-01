@@ -1,0 +1,12 @@
+path: ${base_dir}/sample_data/nyc_taxi.npz
+time_col: t # key for time/idx
+signal: readings # signal of interest
+time_unit: 1800 # frequency of entries in seconds
+idx_split: 5500 # train-test split idx
+idx_anomaly:
+  # idx where the anomalies were recorded (not used in training)
+  - 5943
+  - 7184
+  - 8527
+  - 8835
+  - 10081
