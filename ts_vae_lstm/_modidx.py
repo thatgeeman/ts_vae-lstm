@@ -41,5 +41,6 @@ d = { 'settings': { 'branch': 'main',
                                  'ts_vae_lstm.vae.VAE': ('vae.html#vae', 'ts_vae_lstm/vae.py'),
                                  'ts_vae_lstm.vae.VAE.__init__': ('vae.html#vae.__init__', 'ts_vae_lstm/vae.py'),
                                  'ts_vae_lstm.vae.VAE.forward': ('vae.html#vae.forward', 'ts_vae_lstm/vae.py'),
+                                 'ts_vae_lstm.vae.as_df': ('vae.html#as_df', 'ts_vae_lstm/vae.py'),
                                  'ts_vae_lstm.vae.evaluate_reconstruction': ('vae.html#evaluate_reconstruction', 'ts_vae_lstm/vae.py'),
                                  'ts_vae_lstm.vae.validate_epoch': ('vae.html#validate_epoch', 'ts_vae_lstm/vae.py')}}}

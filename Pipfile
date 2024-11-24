@@ -9,7 +9,7 @@ verify_ssl = true
 name = "downloadpytorch"
 
 [packages]
-numpy = "*"
+numpy = "==1.26"
 pandas = "*"
 nbdev = "*"
 fastcore = "*"

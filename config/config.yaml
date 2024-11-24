@@ -5,3 +5,27 @@ defaults:
 base_dir: ..
 model_dir: ${base_dir}/models
 num_workers: 4
+device: cuda
+
+# dataset and dataloader params
+n_lag: 48
+n_signals: 1
+test_split: 0.2
+batch_sz: 8
+drop_last: true
+
+# VAE params
+latent_dim: 24
+num_hidden_units: 512
+kernel_size: 5 # kernel size would be (kernel_size, n_signals)
+stride: 2 # stride would be (stride, n_signals)
+# training
+lr: 1e-3
+epochs: 50
+wd: 1e-6
+# scheduler
+patience: 10
+factor: 0.9
+
+# LSTM params
+lstm: 1
