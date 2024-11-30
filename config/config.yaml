@@ -2,7 +2,7 @@ defaults:
   - _self_
   - dataset: nyc_taxi
 
-base_dir: ..
+base_dir: .
 model_dir: ${base_dir}/models
 num_workers: 4
 device: cuda
@@ -21,7 +21,7 @@ kernel_size: 5 # kernel size would be (kernel_size, n_signals)
 stride: 2 # stride would be (stride, n_signals)
 # training
 lr: 1e-3
-epochs: 50
+epochs: 100
 wd: 1e-6
 # scheduler
 patience: 10
