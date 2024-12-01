@@ -218,7 +218,7 @@ def train(cfg, print_every=1):
     torch.save(best_model, best_model_pth)
     # params to file
     params.update(dict(cfg))
-    params_pth = f"{cfg.model_dir}/lstm_z{cfg.vae.latent_dim}_{time_slug}.params"
+    params_pth = f"{cfg.model_dir}/lstm_{cfg.lstm.epochs}_z{cfg.vae.latent_dim}_{time_slug}.params"
     joblib.dump(params, params_pth)
     logging.info(f"Params saved to {params_pth}")
 

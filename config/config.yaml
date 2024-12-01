@@ -16,9 +16,12 @@ n_signals: 1
 test_split: 0.2
 batch_sz: 8
 drop_last: true
-# for embedding data generation from a trained vae model
-vae_path: "${base_dir}/models/best_vae_${vae.epochs}_z${vae.latent_dim}_*.pth"
+# for embedding data generation from a trained vae model and final anomaly detection
+vae_path: "${base_dir}/models/best_vae_*_z${vae.latent_dim}_*.pth"
 vae_params_path: "${base_dir}/models/vae_${vae.epochs}_z${vae.latent_dim}_*.params"
 pattern: true # will use glob to pick latest time stamped model
 n_windows: 1 # number of windows to sample from
 sampler_repeat: 1 # resample multiple times from VAEpattern: true # will use glob to pick latest time stamped model
+# for final anomaly detection
+lstm_path: "${base_dir}/models/best_lstm_*_z${vae.latent_dim}_*.pth"
+lstm_params_path: "${base_dir}/models/lstm_${lstm.epochs}_z${vae.latent_dim}_*.params"
