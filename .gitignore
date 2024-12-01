@@ -3,7 +3,8 @@ index_files/
 _proc/
 data/
 */*.pth
-outputs/
+outputs/*
+models/*
 
 *.bak
 .gitattributes
