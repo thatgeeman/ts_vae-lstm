@@ -80,6 +80,7 @@ def get_embedding_windows(data, vae, cfg):
     logging.info(
         f"From {len(data_windowed)} windows, {len(embeddings)} Embeddings generated using VAE."
     )
+
     return embeddings
 
 
@@ -246,10 +247,17 @@ def main(cfg):
     np.random.shuffle(trn_data_idxs)
     logging.info(f"Train embedding indices: {len(trn_data_idxs)}")
     # calculate mean and std of embeddings, should be very close to 0, 1 as sampler of VAE is Normal
-    window_means = np.asarray([emb[i]["subset"].mean().item() for i in trn_data_idxs])
-    window_stds = np.asarray([emb[i]["subset"].std().item() for i in trn_data_idxs])
+    # take mean upto x[:-1] as this is the real training size in each subset
+    window_means = np.asarray(
+        [emb[i]["subset"][:-1].mean().item() for i in trn_data_idxs]
+    )
+    window_stds = np.asarray(
+        [emb[i]["subset"][:-1].std().item() for i in trn_data_idxs]
+    )
+    # mean of means
     emb_mean, emb_std = window_means.mean(), window_stds.mean()
     logging.info(f"Embedding mean and std of train: {emb_mean} ({emb_std})")
+    params.update({"means": emb_mean, "stds": emb_std})
 
     dset_trn = TSLSTMDataset(
         emb,
