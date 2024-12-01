@@ -1,0 +1,17 @@
+# LSTM params
+hidden_size: 64
+epochs: 100
+lr: 1e-3
+wd: 1e-6
+num_layers:
+  - 1
+  - 1
+  - 1
+dropout_p: 0.45
+activation: silu # other implemented are relu, sigmoid, tanh, mish
+optimizer_maximize: false # for loss
+metric: cos_sim # others: mae, mse
+metric_maximize: true # for cosine similarity (used in model save)
+# scheduler
+patience: 15
+factor: 0.9

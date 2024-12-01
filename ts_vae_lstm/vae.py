@@ -248,7 +248,7 @@ class VAE(nn.Module):
         vae_loss = reconstruction_loss + loss_kl
         return reconstructed_x, vae_loss
 
-# %% ../nbs/01_vae.ipynb 73
+# %% ../nbs/01_vae.ipynb 74
 def validate_epoch(model, dls, scorer, device="cpu"):
     """For the full dataloader, calculate the running loss and score"""
     model.eval()
@@ -268,7 +268,7 @@ def validate_epoch(model, dls, scorer, device="cpu"):
             running_score += score
     return running_loss / len(dls), running_score / len(dls)
 
-# %% ../nbs/01_vae.ipynb 75
+# %% ../nbs/01_vae.ipynb 76
 @torch.no_grad()
 def evaluate_reconstruction(original_signal, reconstructed_signal):
     """

@@ -1,0 +1,13 @@
+latent_dim: 24
+num_hidden_units: 512
+kernel_size: 5 # kernel size would be (kernel_size, n_signals)
+stride: 2 # stride would be (stride, n_signals)
+# training
+lr: 1e-3
+epochs: 100
+wd: 1e-6
+# scheduler
+patience: 10
+factor: 0.9
+# metric
+metric_maximize: false # reduce MSE, used in model save

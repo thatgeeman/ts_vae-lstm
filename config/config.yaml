@@ -1,11 +1,14 @@
 defaults:
   - _self_
   - dataset: nyc_taxi
+  - vae: vae_c01
+  - lstm: lstm_c01
 
 base_dir: .
 model_dir: ${base_dir}/models
 num_workers: 4
 device: cuda
+random_seed: 42
 
 # dataset and dataloader params
 n_lag: 48
@@ -13,19 +16,9 @@ n_signals: 1
 test_split: 0.2
 batch_sz: 8
 drop_last: true
-
-# VAE params
-latent_dim: 24
-num_hidden_units: 512
-kernel_size: 5 # kernel size would be (kernel_size, n_signals)
-stride: 2 # stride would be (stride, n_signals)
-# training
-lr: 1e-3
-epochs: 100
-wd: 1e-6
-# scheduler
-patience: 10
-factor: 0.9
-
-# LSTM params
-lstm: 1
+# for embedding data generation from a trained vae model
+vae_path: "${base_dir}/models/best_vae_${vae.epochs}_z${vae.latent_dim}_*.pth"
+vae_params_path: "${base_dir}/models/vae_${vae.epochs}_z${vae.latent_dim}_*.params"
+pattern: true # will use glob to pick latest time stamped model
+n_windows: 1 # number of windows to sample from
+sampler_repeat: 1 # resample multiple times from VAEpattern: true # will use glob to pick latest time stamped model
