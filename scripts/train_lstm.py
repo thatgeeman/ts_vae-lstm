@@ -9,6 +9,7 @@ import joblib
 import numpy as np
 import torch
 import torch.functional as F  # noqa
+from fastcore.xtras import dict2obj
 from torch.utils.data import DataLoader
 
 from scripts.train_vae import get_windows, load_data, set_device
@@ -55,9 +56,9 @@ def get_embedding_windows(data, vae, cfg):
     # to apply standardization to the raw data first
     logging.info("Loading parameters of VAE model")
     vae_params_path = parse_path(cfg, attribute="vae_params_path")
-    vae_params = joblib.load(vae_params_path)
-    means = vae_params["means"]
-    stds = vae_params["stds"]
+    vae_params = dict2obj(joblib.load(vae_params_path))
+    means = vae_params.means
+    stds = vae_params.stds
     slice_from = 1 if cfg.dataset.time_index else 0
     # now run standarzation and pass to get-embeddings
     embeddings = [
@@ -93,19 +94,43 @@ def freeze(model):
     logging.info("VAE model parameters frozen.")
 
 
-def load_model_path(cfg):
-    path = parse_path(cfg)
-    logging.info(f"Got VAE model path {path}")
-    model = VAE(
-        input_shape=(cfg.n_lag, cfg.n_signals),
-        latent_dim=cfg.vae.latent_dim,
-        num_hidden_units=cfg.vae.num_hidden_units,
-        kernel_size=(cfg.vae.kernel_size, cfg.n_signals),
-        stride=(cfg.vae.stride, cfg.n_signals),
-    ).to(vae_device)
-    checkpoint = torch.load(path, map_location=vae_device)
+def load_lstm_model(cfg, device="cpu"):
+    path = parse_path(cfg, attribute="lstm_path")
+    logging.info(f"Got LSTM model path {path}")
+    best_cfg_path = parse_path(cfg, attribute="lstm_params_path")
+    logging.info(f"Got LSTM params path {best_cfg_path}")
+    best_cfg = dict2obj(joblib.load(best_cfg_path))
+    model = LSTMModel(
+        input_size=best_cfg.vae.latent_dim - 1,  # x[:-1]
+        output_size=best_cfg.vae.latent_dim - 1,  # x[1:]
+        hidden_size=best_cfg.lstm.hidden_size,
+        activation=get_activation(best_cfg.lstm.activation),
+        num_layers=best_cfg.lstm.num_layers,
+        dropout_p=best_cfg.lstm.dropout_p,
+    ).to(device)
+    checkpoint = torch.load(path, map_location=device)
     model.load_state_dict(checkpoint)
-    logging.info(f"VAE model loaded to {vae_device}.")
+    logging.info(f"LSTM model loaded to {device}.")
+    freeze(model)
+    return model
+
+
+def load_vae_model(cfg, device="cpu"):
+    path = parse_path(cfg, attribute="vae_path")
+    logging.info(f"Got VAE model path {path}")
+    best_cfg_path = parse_path(cfg, attribute="vae_params_path")
+    logging.info(f"Got VAE params path {best_cfg_path}")
+    best_cfg = dict2obj(joblib.load(best_cfg_path))
+    model = VAE(
+        input_shape=(best_cfg.n_lag, best_cfg.n_signals),
+        latent_dim=best_cfg.vae.latent_dim,
+        num_hidden_units=best_cfg.vae.num_hidden_units,
+        kernel_size=(best_cfg.vae.kernel_size, best_cfg.n_signals),
+        stride=(best_cfg.vae.stride, best_cfg.n_signals),
+    ).to(device)
+    checkpoint = torch.load(path, map_location=device)
+    model.load_state_dict(checkpoint)
+    logging.info(f"VAE model loaded to {device}.")
     freeze(model)
     return model
 
@@ -233,7 +258,7 @@ def main(cfg):
         data[cfg.dataset.signal][cfg.dataset.idx_split :],
     )
 
-    vae = load_model_path(cfg)
+    vae = load_vae_model(cfg, device=vae_device)
     emb = get_embedding_windows(data_train, vae, cfg)  # store the embeddings in advance
 
     # split the embeddings in the order.

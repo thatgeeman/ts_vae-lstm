@@ -3,6 +3,7 @@ defaults:
   - dataset: nyc_taxi
   - vae: vae_c01
   - lstm: lstm_c01
+  - infer: ad_c01
 
 base_dir: .
 model_dir: ${base_dir}/models
