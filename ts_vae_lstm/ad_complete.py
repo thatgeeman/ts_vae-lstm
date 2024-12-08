@@ -32,7 +32,7 @@ from .concepts import get_window
 from fastcore.xtras import noop, flatten
 from dotenv import load_dotenv
 
-# %% ../nbs/03_ad_complete.ipynb 24
+# %% ../nbs/03_ad_complete.ipynb 30
 @torch.no_grad()
 def predict_next_embeddings(emb, lstm_model):
     lstm_model.eval()
@@ -46,7 +46,7 @@ def reconstruct_ts(emb, vae_model):
     ts = vae_model.decoder(emb)
     return ts
 
-# %% ../nbs/03_ad_complete.ipynb 25
+# %% ../nbs/03_ad_complete.ipynb 31
 @torch.no_grad()
 def AD(
     x,

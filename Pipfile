@@ -13,11 +13,8 @@ numpy = "==1.26"
 pandas = "*"
 nbdev = "*"
 fastcore = "*"
-kaggle = ">=1.5"
 matplotlib = "*"
 seaborn = "*"
-scipy = "*"
-scikit-learn = "*"
 torch = "==2.0.0"
 python-dotenv = "*"
 pre-commit = "*"
@@ -26,6 +23,7 @@ hydra-core = "*"
 [dev-packages]
 ipykernel = "*"
 ts-vae-lstm = {editable = true, path = "."}
+nbconvert = "*"
 
 [requires]
 python_version = "3.9"
